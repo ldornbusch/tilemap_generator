@@ -31,7 +31,7 @@ def extract_tiles(str_img_path, tile_size, transparent_color="ff00ff"):
 
     tileset_size = [img.width // tile_size[0], img.height // tile_size[1]]
 
-    all_tile_img, tile_atlas, expanded_atlas, tileset_map = deduplicate_tiles(img, tile_size)
+    all_tile_img, tile_atlas, tileset_map = deduplicate_tiles(img, tile_size)
 
     del_lines = []
     for y in reversed(range(tileset_size[1])):
@@ -130,13 +130,11 @@ def assemble_tileset(all_tile_img, img, tile_size, tileset_map, tileset_size):
 
 
 def deduplicate_tiles(img, tile_size):
-    img_atlas = img.copy()  # the img_atlas is nearly empty and shows every tile only once
-    draw = ImageDraw.Draw(img_atlas)
     all_tiles = {}  # hashmap of (str(tile) -> index)
     all_tiles_imgs = []  # list of tiles
     tile_atlas = []  # indexes to tiles
     img_tile_atlas = []  # indexes to tiles in secondary image atlas (for better reordering)
-    # imgdata = img.getdata()
+    imgdata = img.getdata()
     for ty in range(img.height // tile_size[1]):
         for tx in range(img.width // tile_size[0]):
             tile_data = []
@@ -144,8 +142,7 @@ def deduplicate_tiles(img, tile_size):
                 for px in range(tile_size[0]):
                     abs_x = tx * tile_size[0] + px
                     abs_y = ty * tile_size[1] + py
-                    # a += imgdata[abs_x+abs_y*img.width]
-                    pixel = img.getpixel((abs_x, abs_y))
+                    pixel = imgdata[abs_x+abs_y*img.width]
                     tile_data.append(pixel)
             str_tile_data = str(tile_data)
             if str_tile_data not in all_tiles:
@@ -156,14 +153,9 @@ def deduplicate_tiles(img, tile_size):
                 all_tiles[str_tile_data] = len(all_tiles_imgs)
                 img_tile_atlas.append(len(all_tiles_imgs))
             else:
-                # remove the tile ()
-                draw.rectangle((tx * tile_size[0],
-                                ty * tile_size[1],
-                                tx * tile_size[0] + tile_size[0],
-                                ty * tile_size[1] + tile_size[1]), fill=(0xff, 0, 0xff, 0))
                 img_tile_atlas.append(0)
             tile_atlas.append(all_tiles[str_tile_data])
-    return all_tiles_imgs, tile_atlas, img_atlas, img_tile_atlas
+    return all_tiles_imgs, tile_atlas, img_tile_atlas
 
 
 start = timeit.default_timer()
