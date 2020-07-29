@@ -1,11 +1,11 @@
 import os.path
 import math
+import timeit
 from PIL import Image
 from PIL import ImageDraw
 
 # progress: better tile sort for easier reuse
 # todo: command line interface
-# todo: output time needed
 
 img_path = r"tom_c16_map.gif"
 # img_path = r"850_gamemap2.png"
@@ -166,4 +166,7 @@ def deduplicate_tiles(img, tile_size):
     return all_tiles_imgs, tile_atlas, img_atlas, img_tile_atlas
 
 
+start = timeit.default_timer()
 extract_tiles(img_path, tiles, color)
+end = timeit.default_timer()
+print("%.2f sec." % (end - start))
