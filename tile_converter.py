@@ -67,8 +67,43 @@ infinite="0" nextlayerid="2" nextobjectid="1">
     f.close()
 
 
-def compress_tileset(tileset_map, tileset_size):
-    del_rows = []  # removing  horizontal or vertical complete empty lines
+def is_single_tile(index, tileset_map, tileset_size, check_diagonal=False):
+    retval = True
+    up = (index[0], index[1]-1)
+    left = (index[0]-1, index[1])
+    down = (index[0], index[1]+1)
+    right = (index[0]+1, index[1])
+    if check_diagonal:
+        left_up = (index[0]-1, index[1]-1)
+        left_down = (index[0]-1, index[1]+1)
+        right_down = (index[0]+1, index[1]+1)
+        right_up = (index[0]+1, index[1]-1)
+        directions = [up, left_up, left, left_down, down, right_down, right, right_up]
+    else:
+        directions = [up, left, down, right]
+    for test in directions:
+        if 0 <= test[0] < tileset_size[0] and 0 <= test[1] < tileset_size[1]:
+            if tileset_map[test[1]*tileset_size[0] + test[0]] != 0:
+                retval = False
+                break
+    return retval
+
+
+def find_empty_place(tileset_map, tileset_size):
+    for y in range(tileset_size[1]):
+        for x in range(tileset_size[0]):
+            if tileset_map[y*tileset_size[0] + x] == 0 \
+                    and is_single_tile((x, y), tileset_map, tileset_size, check_diagonal=True):
+                return x, y
+    # no space found, extend tileset_map by a row
+    for x in range(tileset_size[0]):
+        tileset_map.append(0)
+    tileset_size[1] = tileset_size[1] + 1
+    return 0, tileset_size[1] - 1
+
+
+def remove_empty_lines(tileset_map, tileset_size):
+    del_rows = []  # removing  horizontal  complete empty lines
     for y in reversed(range(tileset_size[1])):
         count = 0
         for x in range(tileset_size[0]):
@@ -76,7 +111,7 @@ def compress_tileset(tileset_map, tileset_size):
                 count = count + 1
         if count == 0:
             del_rows.append(y)
-    del_cols = []
+    del_cols = []  # removing  vertical complete empty lines
     for x in reversed(range(tileset_size[0])):
         count = 0
         for y in reversed(range(tileset_size[1])):
@@ -84,6 +119,7 @@ def compress_tileset(tileset_map, tileset_size):
                 count = count + 1
         if count == 0:
             del_cols.append(x)
+    # remove empty rows and cols
     for y in del_rows:
         for x in reversed(range(tileset_size[0])):
             tileset_map.pop(y * tileset_size[0] + x)
@@ -92,6 +128,24 @@ def compress_tileset(tileset_map, tileset_size):
         for y in reversed(range(tileset_size[1])):
             tileset_map.pop(y * tileset_size[0] + x)
         tileset_size[0] = tileset_size[0] - 1
+
+
+def remove_single_tiles(tileset_map, tileset_size):
+    del_singles = []  # removing  single tiles and adding them later on another place
+    for y in range(tileset_size[1]):
+        for x in range(tileset_size[0]):
+            if tileset_map[y * tileset_size[0] + x] != 0 and is_single_tile((x, y), tileset_map, tileset_size):
+                del_singles.append((x, y, tileset_map[y * tileset_size[0] + x]))
+    for single in del_singles:  # replace single tiles:
+        x, y = find_empty_place(tileset_map, tileset_size)
+        tileset_map[y * tileset_size[0] + x] = single[2]
+        tileset_map[single[1] * tileset_size[0] + single[0]] = 0
+
+
+def compress_tileset(tileset_map, tileset_size):
+    remove_empty_lines(tileset_map, tileset_size)
+    remove_single_tiles(tileset_map, tileset_size)
+#    remove_empty_lines(tileset_map, tileset_size)
     return tileset_map, tileset_size
 
 
